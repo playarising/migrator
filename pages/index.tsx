@@ -3,6 +3,13 @@ import WalletConnectProvider from "@walletconnect/web3-provider";
 import Web3Modal from "web3modal";
 import { useCallback, useReducer } from "react";
 import { providers } from "ethers";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faTwitter,
+  faGithub,
+  faTelegramPlane,
+  faInstagram,
+} from "@fortawesome/free-brands-svg-icons";
 
 const INFURA_ID = "460f40a260564ac4a4f4b3fffb032dad";
 
@@ -103,12 +110,28 @@ export default function Home(): JSX.Element {
   return (
     <>
       <div className="w-[400px] mx-auto">
-        <div className="mx-auto">
-          <Image src="/logo.png" width="400px" height="250px" />
+        <div className="mx-auto mt-20">
+          <Image src="/logo.png" width="400px" height="127px" />
         </div>
       </div>
-      <div className="my-2">
-        <h1 className="text-white text-3xl text-center">Rarity Migrator</h1>
+      <div className="text-white text-3xl gap-x-3 flex flex-row justify-center">
+        <a href="https://github.com/playarising">
+          <FontAwesomeIcon icon={faGithub} />
+        </a>
+        <a href="https://t.me/playarising">
+          <FontAwesomeIcon icon={faTelegramPlane} />
+        </a>
+        <a href="https://twitter.com/PlayArising">
+          <FontAwesomeIcon icon={faTwitter} />
+        </a>
+        <a href="https://instagram.com/PlayArising">
+          <FontAwesomeIcon icon={faInstagram} />
+        </a>
+      </div>
+      <div>
+        <h1 className="text-white text-3xl text-center mt-10">
+          Rarity Migrator
+        </h1>
       </div>
       <div className="mx-10">
         <div className="mt-10 px-10 border-white border-2 rounded-lg max-w-[800px] mx-auto bg-dark-silver">
