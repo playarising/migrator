@@ -14,6 +14,8 @@ import { shortenAddress } from "../functions/format";
 import { useGraphSummonerIDs } from "../services/hooks";
 import useRarityLibrary from "../hooks/useRarityLibrary";
 import { chunkArrayByNumber } from "../functions/chunkArray";
+import Loader from "../components/Loader";
+import { expForLevel } from "../functions/expForLevel";
 
 const INFURA_ID = "460f40a260564ac4a4f4b3fffb032dad";
 
@@ -197,7 +199,26 @@ export default function Home(): JSX.Element {
         full_data = full_data.concat(...chunk_response);
       }
       const summoners_full_data = [].concat(...full_data);
-      console.log(items_data, summoners_full_data);
+
+      const levels = summoners_full_data
+        .map((s) => expForLevel(s.base._level - 1))
+        .reduce((a, b) => a + b, 0);
+      const xp = summoners_full_data
+        .map((s) => s.base._xp)
+        .reduce((a, b) => a + b, 0);
+      const gold = summoners_full_data
+        .map((s) => s.gold.balance)
+        .reduce((a, b) => a + b, 0);
+      const material = summoners_full_data
+        .map((s) => s.materials.balance)
+        .reduce((a, b) => a + b, 0);
+      setData({
+        summoners: summoners_full_data.length,
+        items: items_data.length,
+        total_experience: xp + levels,
+        gold,
+        material,
+      });
 
       setLoading(false);
     },
@@ -205,7 +226,6 @@ export default function Home(): JSX.Element {
   );
 
   useEffect(() => {
-    console.log(chainId);
     if (!ids || !address || !provider || chainId !== 250) return;
     fetch_data(ids, address);
   }, [ids, address, chainId]);
@@ -277,7 +297,9 @@ export default function Home(): JSX.Element {
                 </div>
               </div>
               {loading ? (
-                <div />
+                <div className="flex flex-row justify-center text-lg">
+                  <Loader />
+                </div>
               ) : (
                 <>
                   <div className="mx-10 my-5 text-white text-center text-xl">
@@ -286,21 +308,25 @@ export default function Home(): JSX.Element {
                   <div className="flex flex-row justify-center text-white gap-x-5 my-5">
                     <div className="text-center">
                       <h1>Summoners</h1>
-                      <p>1</p>
+                      <p>{data.summoners}</p>
+                    </div>
+                    <div className="text-center">
+                      <h1>Total Experience</h1>
+                      <p>{data.total_experience.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
                       <h1>Total Gold</h1>
-                      <p>1</p>
+                      <p>{data.gold.toLocaleString()}</p>
                     </div>
                   </div>
                   <div className="flex flex-row justify-center text-white gap-x-5 my-5">
                     <div className="text-center">
                       <h1>Total Material</h1>
-                      <p>1</p>
+                      <p>{data.material.toLocaleString()}</p>
                     </div>
                     <div className="text-center">
                       <h1>Items</h1>
-                      <p>1</p>
+                      <p>{data.items}</p>
                     </div>
                   </div>
                   <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
