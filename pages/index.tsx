@@ -1,7 +1,7 @@
 import Image from "next/image";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import Web3Modal from "web3modal";
-import { useCallback, useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { providers } from "ethers";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -11,6 +11,9 @@ import {
   faInstagram,
 } from "@fortawesome/free-brands-svg-icons";
 import { shortenAddress } from "../functions/format";
+import { useGraphSummonerIDs } from "../services/hooks";
+import useRarityLibrary from "../hooks/useRarityLibrary";
+import { chunkArrayByNumber } from "../functions/chunkArray";
 
 const INFURA_ID = "460f40a260564ac4a4f4b3fffb032dad";
 
@@ -33,9 +36,14 @@ if (typeof window !== "undefined") {
 type ActionType =
   | {
       type: "SET_WEB3_PROVIDER";
+      instance?: StateType["instance"];
       provider?: StateType["provider"];
-      web3Provider?: StateType["web3Provider"];
       address?: StateType["address"];
+      chainId?: StateType["chainId"];
+    }
+  | {
+      type: "SET_CHAIN_ID";
+      chainId?: StateType["chainId"];
     }
   | {
       type: "SET_ADDRESS";
@@ -46,15 +54,17 @@ type ActionType =
     };
 
 type StateType = {
+  instance?: any;
   provider?: any;
-  web3Provider?: any;
   address?: string;
+  chainId?: number;
 };
 
 const initialState: StateType = {
+  instance: null,
   provider: null,
-  web3Provider: null,
   address: null,
+  chainId: null,
 };
 
 function reducer(state: StateType, action: ActionType): StateType {
@@ -62,14 +72,20 @@ function reducer(state: StateType, action: ActionType): StateType {
     case "SET_WEB3_PROVIDER":
       return {
         ...state,
+        instance: action.instance,
         provider: action.provider,
-        web3Provider: action.web3Provider,
         address: action.address,
+        chainId: action.chainId,
       };
     case "SET_ADDRESS":
       return {
         ...state,
         address: action.address,
+      };
+    case "SET_CHAIN_ID":
+      return {
+        ...state,
+        chainId: action.chainId,
       };
     case "RESET_WEB3_PROVIDER":
       return initialState;
@@ -80,26 +96,29 @@ function reducer(state: StateType, action: ActionType): StateType {
 
 export default function Home(): JSX.Element {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { provider, web3Provider, address } = state;
+  const { instance, provider, address, chainId } = state;
 
   const connect = useCallback(async function () {
-    const provider = await web3Modal.connect();
-    const web3Provider = new providers.Web3Provider(provider);
-    const signer = web3Provider.getSigner();
+    const instance = await web3Modal.connect();
+    const provider = new providers.Web3Provider(instance);
+    const signer = provider.getSigner();
     const address = await signer.getAddress();
+    const network = await provider.getNetwork();
+
     dispatch({
       type: "SET_WEB3_PROVIDER",
+      instance,
       provider,
-      web3Provider,
       address,
+      chainId: network.chainId,
     });
   }, []);
 
   const disconnect = useCallback(
     async function () {
       await web3Modal.clearCachedProvider();
-      if (provider?.disconnect && typeof provider.disconnect === "function") {
-        await provider.disconnect();
+      if (instance?.disconnect && typeof instance.disconnect === "function") {
+        await instance.disconnect();
       }
       dispatch({
         type: "RESET_WEB3_PROVIDER",
@@ -109,7 +128,7 @@ export default function Home(): JSX.Element {
   );
 
   useEffect(() => {
-    if (provider?.on) {
+    if (instance?.on) {
       const handleAccountsChanged = (accounts: string[]) => {
         dispatch({
           type: "SET_ADDRESS",
@@ -118,26 +137,78 @@ export default function Home(): JSX.Element {
       };
 
       const handleChainChanged = (_hexChainId: string) => {
-        window.location.reload();
+        console.log(_hexChainId);
+        dispatch({
+          type: "SET_CHAIN_ID",
+          chainId: parseInt(_hexChainId, 16),
+        });
       };
 
       const handleDisconnect = async () => {
         await disconnect();
       };
 
-      provider.on("accountsChanged", handleAccountsChanged);
-      provider.on("chainChanged", handleChainChanged);
-      provider.on("disconnect", handleDisconnect);
+      instance.on("accountsChanged", handleAccountsChanged);
+      instance.on("chainChanged", handleChainChanged);
+      instance.on("disconnect", handleDisconnect);
 
       return () => {
-        if (provider.removeListener) {
-          provider.removeListener("accountsChanged", handleAccountsChanged);
-          provider.removeListener("chainChanged", handleChainChanged);
-          provider.removeListener("disconnect", handleDisconnect);
+        if (instance.removeListener) {
+          instance.removeListener("accountsChanged", handleAccountsChanged);
+          instance.removeListener("chainChanged", handleChainChanged);
+          instance.removeListener("disconnect", handleDisconnect);
         }
       };
     }
-  }, [provider, disconnect]);
+  }, [instance, disconnect]);
+
+  const ids = useGraphSummonerIDs(address);
+
+  const [loading, setLoading] = useState(true);
+
+  const [data, setData] = useState<{
+    summoners: number;
+    gold: number;
+    material: number;
+    total_experience: number;
+    items: number;
+  }>({
+    summoners: 0,
+    gold: 0,
+    material: 0,
+    total_experience: 0,
+    items: 0,
+  });
+
+  const { summoners_full, items } = useRarityLibrary(address, provider);
+
+  const fetch_data = useCallback(
+    async (ids, address) => {
+      const items_data = await items(address);
+      const chunks: number[][] = chunkArrayByNumber(ids, 50);
+      const fetchers = [];
+      for (let chunk of chunks) {
+        fetchers.push(summoners_full(chunk));
+      }
+      const fetcherChunks = chunkArrayByNumber(fetchers, 10);
+      let full_data = [];
+      for (let fChunk of fetcherChunks) {
+        const chunk_response = await Promise.all(fChunk);
+        full_data = full_data.concat(...chunk_response);
+      }
+      const summoners_full_data = [].concat(...full_data);
+      console.log(items_data, summoners_full_data);
+
+      setLoading(false);
+    },
+    [summoners_full, items]
+  );
+
+  useEffect(() => {
+    console.log(chainId);
+    if (!ids || !address || !provider || chainId !== 250) return;
+    fetch_data(ids, address);
+  }, [ids, address, chainId]);
 
   return (
     <>
@@ -180,21 +251,67 @@ export default function Home(): JSX.Element {
         </div>
       </div>
       <div className="mt-10 mx-auto text-dark">
-        {web3Provider ? (
-          <>
-            <div className="mx-10 my-5">
-              <div className="px-10 border-white border-2 rounded-lg max-w-[200px] mx-auto bg-dark-silver">
-                <p className="text-white text-sm text-center my-2">
-                  {shortenAddress(address)}
-                </p>
+        {provider ? (
+          chainId !== 250 ? (
+            <>
+              <div className="mx-10 my-5">
+                <div className="px-10 border-white border-2 rounded-lg max-w-[350px] mx-auto bg-red-800">
+                  <p className="text-white text-sm text-center my-2">
+                    Connect to the Fantom Network
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
-              <button onClick={disconnect}>
-                <span className="text-lg">Disconnect</span>
-              </button>
-            </div>
-          </>
+              <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
+                <button onClick={disconnect}>
+                  <span className="text-lg">Disconnect</span>
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mx-10 my-5">
+                <div className="px-10 border-white border-2 rounded-lg max-w-[200px] mx-auto bg-dark-silver">
+                  <p className="text-white text-sm text-center my-2">
+                    {shortenAddress(address)}
+                  </p>
+                </div>
+              </div>
+              {loading ? (
+                <div />
+              ) : (
+                <>
+                  <div className="mx-10 my-5 text-white text-center text-xl">
+                    <h1>Rarity Assets</h1>
+                  </div>
+                  <div className="flex flex-row justify-center text-white gap-x-5 my-5">
+                    <div className="text-center">
+                      <h1>Summoners</h1>
+                      <p>1</p>
+                    </div>
+                    <div className="text-center">
+                      <h1>Total Gold</h1>
+                      <p>1</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-row justify-center text-white gap-x-5 my-5">
+                    <div className="text-center">
+                      <h1>Total Material</h1>
+                      <p>1</p>
+                    </div>
+                    <div className="text-center">
+                      <h1>Items</h1>
+                      <p>1</p>
+                    </div>
+                  </div>
+                  <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
+                    <button onClick={disconnect}>
+                      <span className="text-lg">Disconnect</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
+          )
         ) : (
           <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
             <button onClick={connect}>
