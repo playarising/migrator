@@ -1,7 +1,7 @@
 import Image from "next/image";
 import WalletConnectProvider from "@walletconnect/web3-provider";
 import Web3Modal from "web3modal";
-import { useCallback, useReducer } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { providers } from "ethers";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -10,6 +10,7 @@ import {
   faTelegramPlane,
   faInstagram,
 } from "@fortawesome/free-brands-svg-icons";
+import { shortenAddress } from "../functions/format";
 
 const INFURA_ID = "460f40a260564ac4a4f4b3fffb032dad";
 
@@ -107,6 +108,37 @@ export default function Home(): JSX.Element {
     [provider]
   );
 
+  useEffect(() => {
+    if (provider?.on) {
+      const handleAccountsChanged = (accounts: string[]) => {
+        dispatch({
+          type: "SET_ADDRESS",
+          address: accounts[0],
+        });
+      };
+
+      const handleChainChanged = (_hexChainId: string) => {
+        window.location.reload();
+      };
+
+      const handleDisconnect = async () => {
+        await disconnect();
+      };
+
+      provider.on("accountsChanged", handleAccountsChanged);
+      provider.on("chainChanged", handleChainChanged);
+      provider.on("disconnect", handleDisconnect);
+
+      return () => {
+        if (provider.removeListener) {
+          provider.removeListener("accountsChanged", handleAccountsChanged);
+          provider.removeListener("chainChanged", handleChainChanged);
+          provider.removeListener("disconnect", handleDisconnect);
+        }
+      };
+    }
+  }, [provider, disconnect]);
+
   return (
     <>
       <div className="w-[400px] mx-auto">
@@ -115,16 +147,16 @@ export default function Home(): JSX.Element {
         </div>
       </div>
       <div className="text-white text-3xl gap-x-3 flex flex-row justify-center">
-        <a href="https://github.com/playarising">
+        <a href="https://github.com/playarising" target="_blank">
           <FontAwesomeIcon icon={faGithub} />
         </a>
-        <a href="https://t.me/playarising">
+        <a href="https://t.me/playarising" target="_blank">
           <FontAwesomeIcon icon={faTelegramPlane} />
         </a>
-        <a href="https://twitter.com/PlayArising">
+        <a href="https://twitter.com/PlayArising" target="_blank">
           <FontAwesomeIcon icon={faTwitter} />
         </a>
-        <a href="https://instagram.com/PlayArising">
+        <a href="https://instagram.com/PlayArising" target="_blank">
           <FontAwesomeIcon icon={faInstagram} />
         </a>
       </div>
@@ -148,11 +180,28 @@ export default function Home(): JSX.Element {
         </div>
       </div>
       <div className="mt-10 mx-auto text-dark">
-        <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
-          <button onClick={connect}>
-            <span className="text-lg">Connect</span>
-          </button>
-        </div>
+        {web3Provider ? (
+          <>
+            <div className="mx-10 my-5">
+              <div className="px-10 border-white border-2 rounded-lg max-w-[200px] mx-auto bg-dark-silver">
+                <p className="text-white text-sm text-center my-2">
+                  {shortenAddress(address)}
+                </p>
+              </div>
+            </div>
+            <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
+              <button onClick={disconnect}>
+                <span className="text-lg">Disconnect</span>
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
+            <button onClick={connect}>
+              <span className="text-lg">Connect</span>
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
