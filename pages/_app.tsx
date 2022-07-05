@@ -19,7 +19,6 @@ function MyApp({ Component, pageProps }: AppProps) {
         <meta
           key="description"
           name="description"
-          yar
           content="Utility website to migrate the Rarity Manifested summoners and assets to Arising."
         />
 
