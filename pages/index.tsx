@@ -107,21 +107,29 @@ export default function Home(): JSX.Element {
           <Image src="/logo.png" width="400px" height="250px" />
         </div>
       </div>
-      <div className="px-5">
+      <div className="my-2">
         <h1 className="text-white text-3xl text-center">Rarity Migrator</h1>
-        <p className="text-white text-lg text-center my-2">
-          This tool will help you convert all your Rarity Manifested assets into
-          Arising.
-        </p>
-        <p className="text-white text-lg text-center">
-          None of your rarity elements will be burned or transferred. This tool
-          will only count them and convert them to EXPERIENCE that can be used
-          later to one or multiple Arising characters once the game is
-          available.
-        </p>
       </div>
-      <div className="mt-5 mx-auto w-[200px] text-white">
-        <button onClick={connect}>Connect</button>
+      <div className="mx-10">
+        <div className="mt-10 px-10 border-white border-2 rounded-lg max-w-[800px] mx-auto bg-dark-silver">
+          <p className="text-white text-sm text-center my-2">
+            This tool will help you convert all your Rarity Manifested assets
+            into Arising.
+          </p>
+          <p className="text-white text-sm text-center my-2">
+            None of your rarity elements will be burned or transferred. This
+            tool will only count them and convert them to EXPERIENCE that can be
+            used later to one or multiple Arising characters once the game is
+            available.
+          </p>
+        </div>
+      </div>
+      <div className="mt-10 mx-auto text-dark">
+        <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
+          <button onClick={connect}>
+            <span className="text-lg">Connect</span>
+          </button>
+        </div>
       </div>
     </>
   );
