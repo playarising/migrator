@@ -17,7 +17,13 @@ import { chunkArrayByNumber } from "../functions/chunkArray";
 import Loader from "../components/Loader";
 import { expForLevel } from "../functions/expForLevel";
 import { calcNewExperience } from "../functions/calcNewExperience";
-import { getExperience } from "../services/fetchers";
+import { getExperience, submitMigration } from "../services/fetchers";
+import {
+  ExternalProvider,
+  JsonRpcFetchFunc,
+} from "@ethersproject/providers/src.ts/web3-provider";
+import { Web3Provider } from "@ethersproject/providers";
+import { VERIFICATION_MESSAGE } from "../constants";
 
 const INFURA_ID = "460f40a260564ac4a4f4b3fffb032dad";
 
@@ -59,7 +65,7 @@ type ActionType =
 
 type StateType = {
   instance?: any;
-  provider?: any;
+  provider?: Web3Provider | null;
   address?: string;
   chainId?: number;
 };
@@ -127,6 +133,18 @@ export default function Home(): JSX.Element {
       dispatch({
         type: "RESET_WEB3_PROVIDER",
       });
+    },
+    [provider]
+  );
+
+  const submit = useCallback(
+    async function () {
+      const signer = provider.getSigner();
+      const signature = await signer.signMessage(
+        Buffer.from(VERIFICATION_MESSAGE)
+      );
+      const response = await submitMigration(signature, address);
+      console.log(response);
     },
     [provider]
   );
@@ -356,6 +374,11 @@ export default function Home(): JSX.Element {
                         data.total_experience
                       ).toLocaleString()}
                     </h1>
+                  </div>
+                  <div className="bg-red-800 text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto text-white my-4">
+                    <button onClick={submit}>
+                      <span className="text-lg">Submit</span>
+                    </button>
                   </div>
                   <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
                     <button onClick={disconnect}>

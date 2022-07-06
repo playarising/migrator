@@ -18,11 +18,22 @@ export const getSummonersIDs = async (account: string) => {
 };
 
 export const getExperience = async (
-  account: string
+  address: string
 ): Promise<{ migrated: boolean; success: boolean; experience: number }> => {
   const exp = await fetch("/api/check", {
     method: "POST",
-    body: JSON.stringify({ address: account }),
+    body: JSON.stringify({ address }),
+  });
+  return await exp.json();
+};
+
+export const submitMigration = async (
+  signature: string,
+  address: string
+): Promise<{ success: boolean }> => {
+  const exp = await fetch("/api/submit", {
+    method: "POST",
+    body: JSON.stringify({ signature, address }),
   });
   return await exp.json();
 };

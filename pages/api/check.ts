@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     return;
   }
   const connection = new MongoClient(
-    "mongodb+srv://arising:oBCd0mpgo4uLsdJv@arisingdb.2jcr8gp.mongodb.net/?retryWrites=true&w=majority"
+      process.env.DATABASE_URL
   );
   await connection.connect();
   const db = connection.db("arising");
