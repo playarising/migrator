@@ -16,3 +16,13 @@ export const getSummonersIDs = async (account: string) => {
     return parseInt(s.id);
   });
 };
+
+export const getExperience = async (
+  account: string
+): Promise<{ migrated: boolean; success: boolean; experience: number }> => {
+  const exp = await fetch("/api/check", {
+    method: "POST",
+    body: JSON.stringify({ address: account }),
+  });
+  return await exp.json();
+};

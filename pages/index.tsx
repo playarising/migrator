@@ -16,6 +16,8 @@ import useRarityLibrary from "../hooks/useRarityLibrary";
 import { chunkArrayByNumber } from "../functions/chunkArray";
 import Loader from "../components/Loader";
 import { expForLevel } from "../functions/expForLevel";
+import { calcNewExperience } from "../functions/calcNewExperience";
+import { getExperience } from "../services/fetchers";
 
 const INFURA_ID = "460f40a260564ac4a4f4b3fffb032dad";
 
@@ -174,51 +176,71 @@ export default function Home(): JSX.Element {
     material: number;
     total_experience: number;
     items: number;
+    migrated: boolean;
+    experience: number;
   }>({
     summoners: 0,
     gold: 0,
     material: 0,
     total_experience: 0,
     items: 0,
+    migrated: false,
+    experience: 0,
   });
 
   const { summoners_full, items } = useRarityLibrary(address, provider);
 
   const fetch_data = useCallback(
     async (ids, address) => {
-      const items_data = await items(address);
-      const chunks: number[][] = chunkArrayByNumber(ids, 50);
-      const fetchers = [];
-      for (let chunk of chunks) {
-        fetchers.push(summoners_full(chunk));
-      }
-      const fetcherChunks = chunkArrayByNumber(fetchers, 10);
-      let full_data = [];
-      for (let fChunk of fetcherChunks) {
-        const chunk_response = await Promise.all(fChunk);
-        full_data = full_data.concat(...chunk_response);
-      }
-      const summoners_full_data = [].concat(...full_data);
+      const migration_status = await getExperience(address);
+      if (migration_status.migrated) {
+        setData({
+          summoners: 0,
+          items: 0,
+          total_experience: 0,
+          gold: 0,
+          material: 0,
+          migrated: true,
+          experience: migration_status.experience,
+        });
+      } else {
+        const items_data = await items(address);
+        const chunks: number[][] = chunkArrayByNumber(ids, 50);
+        const fetchers = [];
+        for (let chunk of chunks) {
+          fetchers.push(summoners_full(chunk));
+        }
+        const fetcherChunks = chunkArrayByNumber(fetchers, 10);
+        let full_data = [];
+        for (let fChunk of fetcherChunks) {
+          const chunk_response = await Promise.all(fChunk);
+          full_data = full_data.concat(...chunk_response);
+        }
+        const summoners_full_data = [].concat(...full_data);
 
-      const levels = summoners_full_data
-        .map((s) => expForLevel(s.base._level - 1))
-        .reduce((a, b) => a + b, 0);
-      const xp = summoners_full_data
-        .map((s) => s.base._xp)
-        .reduce((a, b) => a + b, 0);
-      const gold = summoners_full_data
-        .map((s) => s.gold.balance)
-        .reduce((a, b) => a + b, 0);
-      const material = summoners_full_data
-        .map((s) => s.materials.balance)
-        .reduce((a, b) => a + b, 0);
-      setData({
-        summoners: summoners_full_data.length,
-        items: items_data.length,
-        total_experience: xp + levels,
-        gold,
-        material,
-      });
+        const levels = summoners_full_data
+          .map((s) => expForLevel(s.base._level - 1))
+          .reduce((a, b) => a + b, 0);
+        const xp = summoners_full_data
+          .map((s) => s.base._xp)
+          .reduce((a, b) => a + b, 0);
+        const gold = summoners_full_data
+          .map((s) => s.gold.balance)
+          .reduce((a, b) => a + b, 0);
+        const material = summoners_full_data
+          .map((s) => s.materials.balance)
+          .reduce((a, b) => a + b, 0);
+
+        setData({
+          summoners: summoners_full_data.length,
+          items: items_data.length,
+          total_experience: xp + levels,
+          gold,
+          material,
+          migrated: false,
+          experience: 0,
+        });
+      }
 
       setLoading(false);
     },
@@ -233,7 +255,7 @@ export default function Home(): JSX.Element {
   return (
     <>
       <div className="w-[400px] mx-auto">
-        <div className="mx-auto mt-20">
+        <div className="mx-auto mt-5">
           <Image src="/logo.png" width="400px" height="127px" />
         </div>
       </div>
@@ -252,25 +274,11 @@ export default function Home(): JSX.Element {
         </a>
       </div>
       <div>
-        <h1 className="text-white text-3xl text-center mt-10">
+        <h1 className="text-white text-3xl text-center mt-5">
           Rarity Migrator
         </h1>
       </div>
-      <div className="mx-10">
-        <div className="mt-10 px-10 border-white border-2 rounded-lg max-w-[800px] mx-auto bg-dark-silver">
-          <p className="text-white text-sm text-center my-2">
-            This tool will help you convert all your Rarity Manifested assets
-            into Arising.
-          </p>
-          <p className="text-white text-sm text-center my-2">
-            None of your rarity elements will be burned or transferred. This
-            tool will only count them and convert them to EXPERIENCE that can be
-            used later to one or multiple Arising characters once the game is
-            available.
-          </p>
-        </div>
-      </div>
-      <div className="mt-10 mx-auto text-dark">
+      <div className="mt-5 mx-auto text-dark">
         {provider ? (
           chainId !== 250 ? (
             <>
@@ -298,7 +306,15 @@ export default function Home(): JSX.Element {
               </div>
               {loading ? (
                 <div className="flex flex-row justify-center text-lg">
-                  <Loader />
+                  <Loader size={"50"} />
+                </div>
+              ) : data.migrated ? (
+                <div className="mx-10 my-5 text-white text-center text-xl">
+                  <p className="my-5">You have already migrated your data.</p>
+                  <h1>
+                    You have a total of {data.experience.toLocaleString()}{" "}
+                    experience to assign.
+                  </h1>
                 </div>
               ) : (
                 <>
@@ -329,6 +345,18 @@ export default function Home(): JSX.Element {
                       <p>{data.items}</p>
                     </div>
                   </div>
+                  <div className="mx-10 my-5 text-white text-center text-xl">
+                    <h1>
+                      Calculate Arising Experience:{" "}
+                      {calcNewExperience(
+                        data.summoners,
+                        data.gold,
+                        data.material,
+                        data.items,
+                        data.total_experience
+                      ).toLocaleString()}
+                    </h1>
+                  </div>
                   <div className="bg-light-silver text-center py-1 px-2 border-white border-2 rounded-lg max-w-[125px] mx-auto">
                     <button onClick={disconnect}>
                       <span className="text-lg">Disconnect</span>
@@ -345,6 +373,20 @@ export default function Home(): JSX.Element {
             </button>
           </div>
         )}
+      </div>
+      <div className="mx-5">
+        <div className="mt-10 px-10 border-white border-2 rounded-lg max-w-[800px] mx-auto bg-dark-silver">
+          <p className="text-white text-sm text-center my-2">
+            This tool will help you convert all your Rarity Manifested assets
+            into Arising.
+          </p>
+          <p className="text-white text-sm text-center my-2">
+            None of your rarity elements will be burned or transferred. This
+            tool will only count them and convert them to EXPERIENCE that can be
+            used later to one or multiple Arising characters once the game is
+            available.
+          </p>
+        </div>
       </div>
     </>
   );
