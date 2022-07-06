@@ -143,8 +143,20 @@ export default function Home(): JSX.Element {
       const signature = await signer.signMessage(
         Buffer.from(VERIFICATION_MESSAGE)
       );
+      setLoading(true);
       const response = await submitMigration(signature, address);
-      console.log(response);
+      if (response.success) {
+        setData({
+          summoners: 0,
+          items: 0,
+          total_experience: 0,
+          gold: 0,
+          material: 0,
+          migrated: true,
+          experience: response.experience,
+        });
+      }
+      setLoading(false);
     },
     [provider]
   );
@@ -328,7 +340,7 @@ export default function Home(): JSX.Element {
                 </div>
               ) : data.migrated ? (
                 <div className="mx-10 my-5 text-white text-center text-xl">
-                  <p className="my-5">You have already migrated your data.</p>
+                  <p className="my-5">You have migrated your data!</p>
                   <h1>
                     You have a total of {data.experience.toLocaleString()}{" "}
                     experience to assign.
@@ -366,12 +378,14 @@ export default function Home(): JSX.Element {
                   <div className="mx-10 my-5 text-white text-center text-xl">
                     <h1>
                       Calculate Arising Experience:{" "}
-                      {calcNewExperience(
-                        data.summoners,
-                        data.gold,
-                        data.material,
-                        data.items,
-                        data.total_experience
+                      {parseFloat(
+                        calcNewExperience(
+                          data.summoners,
+                          data.gold,
+                          data.material,
+                          data.items,
+                          data.total_experience
+                        ).toFixed(2)
                       ).toLocaleString()}
                     </h1>
                   </div>

@@ -8,9 +8,7 @@ export default async function handler(req, res) {
       .json({ data: null, success: false, error: "missing address" });
     return;
   }
-  const connection = new MongoClient(
-      process.env.DATABASE_URL
-  );
+  const connection = new MongoClient(process.env.DATABASE_URL);
   await connection.connect();
   const db = connection.db("arising");
   const query: { _id: any } = { _id: address };

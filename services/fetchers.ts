@@ -30,7 +30,7 @@ export const getExperience = async (
 export const submitMigration = async (
   signature: string,
   address: string
-): Promise<{ success: boolean }> => {
+): Promise<{ success: boolean; experience: number }> => {
   const exp = await fetch("/api/submit", {
     method: "POST",
     body: JSON.stringify({ signature, address }),
