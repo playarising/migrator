@@ -18,12 +18,9 @@ import Loader from "../components/Loader";
 import { expForLevel } from "../functions/expForLevel";
 import { calcNewExperience } from "../functions/calcNewExperience";
 import { getExperience, submitMigration } from "../services/fetchers";
-import {
-  ExternalProvider,
-  JsonRpcFetchFunc,
-} from "@ethersproject/providers/src.ts/web3-provider";
 import { Web3Provider } from "@ethersproject/providers";
 import { VERIFICATION_MESSAGE } from "../constants";
+import Mailchimp from "react-mailchimp-form";
 
 const INFURA_ID = "460f40a260564ac4a4f4b3fffb032dad";
 
@@ -410,6 +407,23 @@ export default function Home(): JSX.Element {
             </button>
           </div>
         )}
+      </div>
+      <div className="max-w-[300px] mx-auto my-10">
+        <h1 className="text-white my-2 text-center">
+          Subscribe to the newsletter
+        </h1>
+        <Mailchimp
+          action="https://playarising.us10.list-manage.com/subscribe/post?u=e1e9cae8a82b01e1986479a3b&amp;id=c2b4d705b4"
+          className="text-white"
+          fields={[
+            {
+              name: "EMAIL",
+              placeholder: "Email",
+              type: "email",
+              required: true,
+            },
+          ]}
+        />
       </div>
       <div className="mx-5">
         <div className="mt-10 px-10 border-white border-2 rounded-lg max-w-[800px] mx-auto bg-dark-silver">

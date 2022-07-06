@@ -28,3 +28,15 @@ body {
 h1,h2,h3,h4,h5,h6 {
     font-family: "Montserrat Bold", sans-serif;
 }
+
+input {
+    border-radius: 10px;
+    margin-right: 15px;
+    line-height: 30px;
+    text-align: center;
+    color: #022127;
+}
+.msg-alert {
+    text-align: center;
+    margin-top: 10px;
+}
